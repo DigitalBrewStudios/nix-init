@@ -2,6 +2,7 @@ mod crates_io;
 mod gitea;
 mod github;
 mod gitlab;
+mod sourcehut;
 mod pypi;
 
 use anyhow::Result;
@@ -17,7 +18,7 @@ use crate::{
     cfg::AccessTokens,
     fetcher::{
         crates_io::FetchCrate, gitea::FetchFromGitea, github::FetchFromGitHub,
-        gitlab::FetchFromGitLab, pypi::FetchPypi,
+        gitlab::FetchFromGitLab, pypi::FetchPypi, sourcehut::FetchFromSourceHut,
     },
     lang::python::PythonDependencies,
     utils::ResultExt,
@@ -44,6 +45,7 @@ pub enum FetcherDispatch {
     FetchFromGitHub(FetchFromGitHub),
     FetchFromGitLab(FetchFromGitLab),
     FetchFromGitea(FetchFromGitea),
+    FetchFromSourceHut(FetchFromSourceHut)
     FetchPypi(FetchPypi),
 }
 
