@@ -1,4 +1,5 @@
 mod crates_io;
+mod bitbucket;
 mod gitea;
 mod github;
 mod gitlab;
@@ -16,7 +17,7 @@ use tracing::{error, warn};
 use crate::{
     cfg::AccessTokens,
     fetcher::{
-        crates_io::FetchCrate, gitea::FetchFromGitea, github::FetchFromGitHub,
+        crates_io::FetchCrate, bitbucket::FetchFromBitbucket, gitea::FetchFromGitea, github::FetchFromGitHub,
         gitlab::FetchFromGitLab, pypi::FetchPypi,
     },
     lang::python::PythonDependencies,
@@ -41,6 +42,7 @@ pub trait Fetcher {
 #[serde(tag = "fetcher", content = "args", rename_all = "camelCase")]
 pub enum FetcherDispatch {
     FetchCrate(FetchCrate),
+    FetchFromBitbucket(FetchFromBitbucket),
     FetchFromGitHub(FetchFromGitHub),
     FetchFromGitLab(FetchFromGitLab),
     FetchFromGitea(FetchFromGitea),
