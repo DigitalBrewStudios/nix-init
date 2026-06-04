@@ -5,6 +5,8 @@ use tracing::warn;
 
 use crate::utils::ResultExt;
 
+mod deps;
+
 #[derive(Deserialize)]
 struct PackageJson {
     #[serde(default)]

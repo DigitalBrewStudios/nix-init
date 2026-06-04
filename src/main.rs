@@ -651,6 +651,10 @@ async fn run() -> Result<()> {
         }
 
         Builder::BuildNpmPackage => {
+            let package_json =
+                File::open(src_dir.join("package.json")).ok_inspect(|e| warn!("{e}"));
+
+            if let Some(package_json) = &package_json {}
             let hash = if has_npm_lock
                 && let Some(hash) = fod_hash(format!(
                     r#"(import({nixpkgs}){{}}).fetchNpmDeps{{src={src};hash="{FAKE_HASH}";}}"#,
