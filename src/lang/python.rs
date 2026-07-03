@@ -42,6 +42,7 @@ struct BuildSystem {
 #[serde(default, rename_all = "kebab-case")]
 struct Project {
     name: Option<String>,
+    requires_python: Option<String>,
     #[serde_as(as = "DefaultOnError")]
     license: Option<String>,
     dependencies: Option<Vec<String>>,

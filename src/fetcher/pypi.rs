@@ -33,6 +33,7 @@ struct Info {
     license: Option<String>,
     #[serde_as(as = "DefaultOnNull")]
     requires_dist: Vec<String>,
+    requires_python: Option<String>,
     summary: String,
 }
 
