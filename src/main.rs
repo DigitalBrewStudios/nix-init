@@ -39,8 +39,14 @@ use crate::{
     cli::{BuilderFunction, CargoVendor, Opts},
     cmd::{NIX, NURL},
     codegen::{
-        BuilderDispatch, Codegen, SourceLayout, drv::MkDerivation, go::BuildGoModule,
-        npm::BuildNpmPackage, python::BuildPythonPackage, rust::BuildRustPackage,
+        BuilderDispatch::{self, MkDerivation},
+        Codegen, SourceLayout,
+        drv::MkDerivation,
+        go::BuildGoModule,
+        maven::BuildMavenPackage,
+        npm::BuildNpmPackage,
+        python::BuildPythonPackage,
+        rust::BuildRustPackage,
     },
     fetcher::{Fetcher, FetcherDispatch, PackageInfo, PypiFormat, Revisions, Version},
     frontend::{Frontend, headless, readline},
@@ -382,21 +388,28 @@ async fn run() -> Result<()> {
 
     let layout = SourceLayout::detect(&src_dir);
 
-    let builder = match (opts.builder, opts.cargo_vendor) {
-        (Some(builder), rust @ Some(vendor)) if layout.has_cargo => match builder {
-            BuilderFunction::BuildGoModule => BuildGoModule.into(),
-            BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
-            BuilderFunction::BuildPythonApplication => BuildPythonPackage::new(true, rust).into(),
-            BuilderFunction::BuildPythonPackage => BuildPythonPackage::new(false, rust).into(),
-            BuilderFunction::BuildRustPackage => BuildRustPackage::new(vendor).into(),
-            BuilderFunction::MkDerivation => MkDerivation::new(rust).into(),
-            BuilderFunction::MkDerivationNoCC => MkDerivation::no_cc().into(),
-        },
-        (Some(builder), _) => {
+    let builder = match (opts.builder, opts.cargo_vendor, opts.gradle) {
+        (Some(builder), rust @ Some(vendor), gradle @ Some(gradle)) if layout.has_cargo => {
+            match builder {
+                BuilderFunction::BuildGoModule => BuildGoModule.into(),
+                BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
+                BuilderFunction::BuildMavenPackage => BuildMavenPackage.into(),
+                BuilderFunction::BuildPythonApplication => {
+                    BuildPythonPackage::new(true, rust).into()
+                }
+                BuilderFunction::BuildPythonPackage => BuildPythonPackage::new(false, rust).into(),
+                BuilderFunction::BuildRustPackage => BuildRustPackage::new(vendor).into(),
+                BuilderFunction::MkDerivation => MkDerivation::new(rust, None).into(),
+                BuilderFunction::MkDerivationNoCC => MkDerivation::no_cc().into(),
+                BuilderFunction::MkDerivationGradle => MkDerivation(None, gradle),
+            }
+        }
+        (Some(builder), _, _) => {
             let rust = layout.has_cargo.then_some(CargoVendor::FetchCargoVendor);
             match builder {
                 BuilderFunction::BuildGoModule => BuildGoModule.into(),
                 BuilderFunction::BuildNpmPackage => BuildNpmPackage.into(),
+                BuilderFunction::BuildMavenPackage => BuildMavenPackage.into(),
                 BuilderFunction::BuildPythonApplication => {
                     BuildPythonPackage::new(true, rust).into()
                 }
@@ -404,11 +417,11 @@ async fn run() -> Result<()> {
                 BuilderFunction::BuildRustPackage => {
                     BuildRustPackage::new(CargoVendor::FetchCargoVendor).into()
                 }
-                BuilderFunction::MkDerivation => MkDerivation::new(rust).into(),
-                BuilderFunction::MkDerivationNoCC => MkDerivation::no_cc().into(),
+                BuilderFunction::MkDerivation => MkDerivation::new(rust, None).into(),
+                BuilderFunction::MkDerivationNoCC => MkDerivation::no_cc(None).into(),
             }
         }
-        (None, rust) => {
+        (None, rust, gradle) => {
             let mut builders = Vec::new();
             if layout.has_go {
                 builders.push(BuildGoModule.into());
@@ -448,8 +461,12 @@ async fn run() -> Result<()> {
                 builders.push(BuildNpmPackage.into());
             }
 
-            builders.push(MkDerivation::new(None).into());
-            builders.push(MkDerivation::no_cc().into());
+            if layout.has_pom_file {
+                builders.push(BuildMavenPackage.into());
+            }
+
+            builders.push(MkDerivation::new(None, None).into());
+            builders.push(MkDerivation::no_cc(None).into());
 
             frontend.builder(builders)?
         }
@@ -596,7 +613,7 @@ fn get_version(rev: &str) -> &str {
 }
 
 fn get_version_number(rev: &str) -> &str {
-    &rev[rev.find(char::is_numeric).unwrap_or_default() ..]
+    &rev[rev.find(char::is_numeric).unwrap_or_default()..]
 }
 
 async fn maybe_format(content: &str, mut file: File, cmd: Command) -> Result<()> {

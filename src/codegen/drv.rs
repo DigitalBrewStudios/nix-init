@@ -5,18 +5,24 @@ use crate::{cli::CargoVendor, codegen::Builder};
 #[derive(Clone, Copy)]
 pub struct MkDerivation {
     cc: bool,
+    gradle: Option<bool>,
     rust: Option<CargoVendor>,
 }
 
 impl MkDerivation {
-    pub fn new(rust: Option<CargoVendor>) -> Self {
-        Self { cc: true, rust }
+    pub fn new(rust: Option<CargoVendor>, gradle: Option<bool>) -> Self {
+        Self {
+            cc: true,
+            rust,
+            gradle,
+        }
     }
 
     pub fn no_cc() -> Self {
         Self {
             cc: false,
             rust: None,
+            gradle: None,
         }
     }
 }
@@ -38,6 +44,10 @@ impl Builder for MkDerivation {
         self.rust
     }
 
+    fn gradle_deps(&self) -> Option<bool> {
+        self.gradle
+    }
+
     fn infer_setup_hooks(&self) -> bool {
         true
     }
@@ -53,6 +63,11 @@ impl Display for MkDerivation {
         if let Some(rust) = self.rust {
             write!(f, " + {rust}")?;
         }
+
+        if let Some(gradle) = self.gradle {
+            write!(f, " + {gradle}")?;
+        }
+
         Ok(())
     }
 }

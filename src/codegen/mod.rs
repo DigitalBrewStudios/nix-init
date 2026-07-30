@@ -1,5 +1,6 @@
 pub mod drv;
 pub mod go;
+pub mod maven;
 pub mod npm;
 pub mod python;
 pub mod rust;
@@ -26,8 +27,8 @@ use tracing::warn;
 use crate::{
     cli::CargoVendor,
     codegen::{
-        drv::MkDerivation, go::BuildGoModule, npm::BuildNpmPackage, python::BuildPythonPackage,
-        rust::BuildRustPackage,
+        drv::MkDerivation, go::BuildGoModule, maven::BuildMavenPackage, npm::BuildNpmPackage,
+        python::BuildPythonPackage, rust::BuildRustPackage,
     },
     frontend::FrontendDispatch,
     inputs::{AllInputs, write_all_lambda_inputs, write_inputs, write_lambda_input},
@@ -45,6 +46,7 @@ use crate::{
 pub enum BuilderDispatch {
     BuildGoModule(BuildGoModule),
     BuildNpmPackage(BuildNpmPackage),
+    BuildMavenPackage(BuildMavenPackage),
     BuildPythonPackage(BuildPythonPackage),
     BuildRustPackage(BuildRustPackage),
     MkDerivation(MkDerivation),
@@ -83,6 +85,7 @@ pub struct SourceLayout {
     pub has_npm: bool,
     pub has_npm_lock: bool,
     pub has_python: bool,
+    pub has_pom_file: bool,
     pub has_zig: bool,
 }
 
@@ -111,6 +114,10 @@ pub trait Builder {
     }
 
     fn cargo_deps(&self) -> Option<CargoVendor> {
+        None
+    }
+
+    fn gradle_deps(&self) -> Option<bool> {
         None
     }
 
@@ -182,6 +189,7 @@ impl Codegen<'_> {
         let after_version = builder.after_version(&mut self)?;
         let mut after_src = builder.after_src(&mut self).await?;
         let cargo_deps = builder.cargo_deps();
+        let gradle_deps = builder.cargo_deps();
         if let Some(vendor) = cargo_deps {
             self.inputs.native_build_inputs.always.extend([
                 "cargo".into(),
@@ -210,6 +218,12 @@ impl Codegen<'_> {
                     write_cargo_lock(&mut after_src, has_cargo_lock, *resolve).await?;
                 }
             }
+        }
+        if let Some(bool) = gradle_deps {
+            self.inputs
+                .native_build_inputs
+                .always
+                .extend(["gradle".into()]);
         }
         let after_inputs = builder.after_inputs(&mut self)?;
 
@@ -284,7 +298,7 @@ impl Codegen<'_> {
             .description
             .trim_matches(|c: char| !c.is_alphanumeric())
             .to_owned();
-        description.get_mut(0 .. 1).map(str::make_ascii_uppercase);
+        description.get_mut(0..1).map(str::make_ascii_uppercase);
         write!(self.out, "  ")?;
         writedoc! {
             self.out,
@@ -318,6 +332,19 @@ impl Codegen<'_> {
 
         if builder.explicit_platforms() {
             writeln!(self.out, "    platforms = lib.platforms.all;")?;
+        }
+
+        //TODO(future): split this out to a seperate function like write_provenance
+        if builder.gradle_deps() == Some(true) {
+            writedoc!(
+                self.out,
+                r"
+                    sourceProvenance = with lib.sourceTypes; [
+                      fromSource
+                      binaryBytecode # mitm cache
+                    ];
+            ;"
+            )?;
         }
 
         writeln!(self.out, "  }};")?;
@@ -479,6 +506,7 @@ impl SourceLayout {
                 || src_dir.join("npm-shrinkwrap.json").is_file(),
             has_python: src_dir.join("pyproject.toml").is_file()
                 || src_dir.join("setup.py").is_file(),
+            has_pom_file: src_dir.join("pom.xml").is_file(),
             has_zig: src_dir.join("build.zig").is_file(),
         }
     }

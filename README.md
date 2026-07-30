@@ -16,7 +16,7 @@ Generate Nix packages from URLs
 
 - Hash prefetching powered by [nurl] with support for `cargoHash` and
   `vendorHash`
-- Dependency inference for Rust, Go, and Python projects
+- Dependency inference for Rust, Go, Java, and Python projects
 - Interactive prompts with fuzzy tab completions
 - License detection
 

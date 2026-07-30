@@ -75,6 +75,7 @@ pub struct Opts {
 pub enum BuilderFunction {
     BuildGoModule,
     BuildNpmPackage,
+    BuildMavenPackage,
     BuildPythonApplication,
     BuildPythonPackage,
     BuildRustPackage,
@@ -82,6 +83,8 @@ pub enum BuilderFunction {
     MkDerivation,
     #[value(name = "stdenvNoCC.mkDerivation")]
     MkDerivationNoCC,
+    #[value(name = "stdenv.mkDerivation", alias = "mkDerivation")]
+    MkDerivationGradle,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
