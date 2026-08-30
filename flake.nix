@@ -45,6 +45,10 @@
                 pkgs.nurl
               ];
 
+              buildInputs = lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+                pkgs.curl
+              ];
+
               env = {
                 NIX_INIT_LOG = "nix_init=trace";
                 RUST_BACKTRACE = true;
@@ -58,7 +62,6 @@
             };
             full = pkgs.mkShell {
               imports = [ config.devShells.default ];
-              buildInputs = lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.curl ];
               packages = [
                 inputs'.fenix.packages.stable.defaultToolchain
               ];
