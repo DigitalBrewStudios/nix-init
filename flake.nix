@@ -39,21 +39,30 @@
           ...
         }:
         {
-          devShells.default = pkgs.mkShell {
-            packages = [
-              pkgs.nurl
-            ];
+          devShells = {
+            default = pkgs.mkShell {
+              packages = [
+                pkgs.nurl
+              ];
 
-            env = {
-              NIX_INIT_LOG = "nix_init=trace";
-              RUST_BACKTRACE = true;
+              env = {
+                NIX_INIT_LOG = "nix_init=trace";
+                RUST_BACKTRACE = true;
+              };
+
+              shellHook = ''
+                mkdir -p data
+                ln -sf ${config.packages.get-nix-license} data/get_nix_license.rs
+                ln -sf ${config.packages.license-store-cache} data/license-store-cache.zstd
+              '';
             };
-
-            shellHook = ''
-              mkdir -p data
-              ln -sf ${config.packages.get-nix-license} data/get_nix_license.rs
-              ln -sf ${config.packages.license-store-cache} data/license-store-cache.zstd
-            '';
+            full = pkgs.mkShell {
+              imports = [ config.devShells.default ];
+              buildInputs = lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ pkgs.curl ];
+              packages = [
+                inputs'.fenix.packages.stable.defaultToolchain
+              ];
+            };
           };
 
           packages = {
