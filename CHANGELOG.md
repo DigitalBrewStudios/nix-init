@@ -6,6 +6,11 @@
 
 - Add support for `buildNpmPackage`
 
+### Fixes
+
+- Rust: cargoLock: clear query and fragment from package urls
+  ([#865](https://github.com/nix-community/nix-init/pull/865))
+
 ## v0.3.6 - 2026-05-15
 
 ### Fixes
