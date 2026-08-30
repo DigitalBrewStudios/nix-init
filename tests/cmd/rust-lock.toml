@@ -1,0 +1,6 @@
+args = [
+  "--headless",
+  "--url=https://github.com/typst/typst",
+  "--rev=v0.15.1",
+  "--cargo-vendor=importCargoLock",
+]
